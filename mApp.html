@@ -611,6 +611,17 @@
                 position: place.geometry.location,
                 id: place.place_id
             });
+            // Create a single infowindow to be used with the place details infomration
+            // so  that only on is open at once.
+            var placeInfoWindow = new google.maps.InfoWindow();
+            //If a marker is clicked, do a place details search on it in the next function.
+            marker.addListener('click', function() {
+                if (placeInfoWindow.marker == this) {
+                    console.log(["This infowindow already is on this marker!"])
+                } else {
+                    getPlaceDetails(this, placeInfoWindow)
+                }
+            })
             placeMarkers.push(marker);
             if (place.geometry.viewport) {
                 //Only geocodes have viewport.
@@ -620,6 +631,48 @@
             }
         }
         map.fitBounds(bounds);
+    }
+
+    function getPlaceDetails(marker, infoWindow) {
+        var service = new google.maps.places.PlacesService(map);
+        service.getDetails({
+            placeId: marker.id
+        }, function (place, status) {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                // Set the marker property on this infowindow so it isn't created again.
+                infoWindow.marker = marker;
+                var innerHTML = '<div>'
+                if (place.name) {
+                    innerHTML += '<strong>' + place.name + '</strong>';
+                }
+                if (place.formatted_address) {
+                    innerHTML += '<hr>' + place.formatted_address;
+                }
+                if (place.formatted_phone_number) {
+                    innerHTML += '<hr>' + place.formatted_phone_number;
+                }
+                if (place.opening_hours) {
+                    innerHTML += place.opening_hours.weekday_text[0]  + '<br>'
+                    innerHTML += place.opening_hours.weekday_text[1] + '<br>'
+                    innerHTML += place.opening_hours.weekday_text[2]  + '<br>'
+                    innerHTML += place.opening_hours.weekday_text[3]  + '<br>'
+                    innerHTML += place.opening_hours.weekday_text[4]  + '<br>'
+                    innerHTML += place.opening_hours.weekday_text[5]  + '<br>'
+                    innerHTML += place.opening_hours.weekday_text[6]
+                }
+                if (place.photos) {
+                    innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
+                        {maxHeight:100, maxWidth:200}) + '">';
+                }
+                innerHTML += '</div>';
+                infoWindow.setContent(innerHTML);
+                infoWindow.open(map, marker);
+                // Make sure the marker property is cleared if the infowindow is closed.
+                infoWindow.addListener('closeclick', function() {
+                    infoWindow.marker = null;
+                })
+            }
+        })
     }
 
                 // Create a styles array to use with the map.
